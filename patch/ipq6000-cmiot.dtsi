@@ -1,9 +1,28 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
+// ============================================================
+// 兆能 M2 移植专用 cmiot 设备树碎片（适配 iStoreOS 24.10）
+//
+// 原始版本来自 LibWrt/LibWrt @ 25.12-nss（cmiot_ax18 参考板，
+// 兆能 M2 即其硬件克隆）。但 iStoreOS 24.10（基于 OpenWrt 24.10 上游）
+// 与 LibWrt 的 DTS 体系有两处不兼容，已在本文件就地处理：
+//
+//   1. 去掉  #include "ipq6018-nss.dtsi"
+//      iStoreOS 24.10 不含 NSS 设备树，也没有 NSS 内核驱动；
+//      dtc 会报 “ipq6018-nss.dtsi: No such file or directory”。
+//      本固件走 CPU 转发，不需要 NSS 硬件卸载。若坚持要 NSS 加速，
+//      应改用 LibWrt（25.12-nss）源码直接编译，而不是 iStoreOS。
+//
+//   2. 去掉  #include "ipq6018-common.dtsi"，改为下方内联 mdio_pins
+//      iStoreOS 24.10 没有把 pinctrl 拆成 common.dtsi（其自带设备
+//      如 fap650 / mango-dvk 直接 include cp-cpu + ess）。而 cmiot 的
+//      &mdio 需要 mdio_pins，故在此就地定义，避免引入 LibWrt 专属依赖
+//      （LibWrt 的 common.dtsi 还会引用 serial_3_pins，iStoreOS 内核
+//       基础里没有，反而会引发新的 “Reference to non-existent label”）。
+// ============================================================
+
 #include "ipq6018-512m.dtsi"
 #include "ipq6018-ess.dtsi"
-#include "ipq6018-nss.dtsi"
-#include "ipq6018-common.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
@@ -37,6 +56,26 @@
 			label = "wps";
 			gpios = <&tlmm 9 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+};
+
+// mdio pinctrl：原在 LibWrt 的 ipq6018-common.dtsi 中，这里内联，
+// 因为 iStoreOS 24.10 不包含该拆分文件，且其自带 dtsi 也未定义 mdio_pins。
+&tlmm {
+	mdio_pins: mdio-pins {
+		mdc {
+			pins = "gpio64";
+			function = "mdc";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+
+		mdio {
+			pins = "gpio65";
+			function = "mdio";
+			drive-strength = <8>;
+			bias-pull-up;
 		};
 	};
 };
