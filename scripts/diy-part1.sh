@@ -34,7 +34,10 @@ echo "[0/6] 前置校验通过，$QCA 存在"
 
 # ----------------------------------------------------------------------------
 # 1. 注入 DTS
-#    zn_m2 的 DTS 依赖 ipq6000-cmiot.dtsi（iStoreOS 里已存在，无需搬运）
+#    zn_m2 的 DTS 依赖 ipq6000-cmiot.dtsi。iStoreOS 24.10 的 qualcommax 自带
+#    设备（fap650 / mango-dvk 等）并不含 cmiot，也不含 NSS / common 拆分，
+#    因此本仓库的 patch/ipq6000-cmiot.dtsi 是一份“适配 iStoreOS 的自包含碎片”
+#    （已去掉 nss / common 两个 iStoreOS 缺失的 include，并把 mdio_pins 内联）。
 # ----------------------------------------------------------------------------
 echo ""
 echo "[1/6] 注入 DTS：ipq6000-m2.dts"
@@ -86,7 +89,11 @@ define Device/zn_m2
 	PAGESIZE := 2048
 	SOC := ipq6000
 	DEVICE_DTS_CONFIG := config@cp03-c1
-	DEVICE_PACKAGES := ipq-wifi-zn_m2
+	# 本固件为“无 WiFi 精简版”：iStoreOS 24.10 feeds 不含 zn_m2 的 WiFi
+	# 板级文件（ipq-wifi-zn_m2），且配置已关闭 ath11k，故不带入该包，
+	# 避免镜像组装阶段报 “package ipq-wifi-zn_m2 is not available”。
+	# 若日后要启用 WiFi，需先从 LibWrt 移植 board-2.bin 并恢复此行。
+	DEVICE_PACKAGES :=
 endef
 TARGET_DEVICES += zn_m2
 MKEOF
