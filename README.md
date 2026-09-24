@@ -32,8 +32,12 @@ configs/zn-m2.config            精简配置（功能 + 去 WiFi + 剔大包）
 scripts/diy-part1.sh            【移植注入】DTS / 设备定义 / 网口 / LED
 scripts/diy-part2.sh            【定制】默认 IP / 首次启动配置 / extroot 预留
 patch/
-  ipq6000-m2.dts                zn_m2 设备树（来自 LibWrt）
-  ipq6000-cmiot.dtsi            DTS 依赖（zn_m2 的 dts 要 include 它）
+  ipq6000-m2.dts                zn_m2 设备树（来自 LibWrt，仅含板级差异）
+  ipq6000-cmiot.dtsi            DTS 依赖（zn_m2 的 dts 要 include 它）。
+                                  注意：这是“适配 iStoreOS 的自包含版”，已去掉
+                                  LibWrt 原版里的 #include "ipq6018-nss.dtsi" 与
+                                  #include "ipq6018-common.dtsi"，并把 mdio_pins
+                                  内联——因为 iStoreOS 24.10 不含这两份拆分文件。
   reference-02_network.txt      网口配置参考（LibWrt 原版，含 zn,m2 分支）
   reference-01_leds.txt         LED 配置参考（LibWrt 原版，含 zn,m2 分支）
 ```
@@ -159,5 +163,6 @@ rootfs_data  32.4 MiB   ← overlay，可用仅 22.8MB  ← 装不下 OpenClash 
 ## 已知限制
 
 - **未实机验证**。首次编译如有报错，需按日志定位（本仓库的工作流已内置移植自检，会打印四件套是否注入成功）
-- `ipq-wifi-zn_m2` 由设备定义强制带入（几十 KB），无法通过 `.config` 排除，留着无害
+- **无 NSS 硬件加速**：iStoreOS 24.10 不含 NSS 设备树与内核驱动，故 `ipq6000-cmiot.dtsi` 已剥离 NSS 依赖，数据走 CPU 转发。千兆内网/家庭宽带场景下足够；若要 NSS 卸载，请改用 LibWrt（25.12-nss）源码直接编译。
+- **无 WiFi**：本固件为精简版，配置已关闭 ath11k，设备定义也不带入 `ipq-wifi-zn_m2`（iStoreOS feeds 无此板级文件）。如需 WiFi，需从 LibWrt 移植 board-2.bin 并恢复 `diy-part1.sh` 里的 `DEVICE_PACKAGES`。
 - extroot 已在 `fstab` 中预留但**默认关闭**，插 U 盘后可手动启用
